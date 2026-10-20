@@ -122,3 +122,4 @@ Tests use isolated Django test databases and temporary media storage. They cover
 - [ ] Confirm the assessment-specific deliverables against the original rubric when available; it was not found in this workspace.
 - [ ] Do not submit `.env`, local database files, private uploads, or real credentials.
 - [ ] Before production deployment, upgrade Django, configure secret/host values, HTTPS, static/media hosting, backups and an operational data-retention policy.
+# MPRS
