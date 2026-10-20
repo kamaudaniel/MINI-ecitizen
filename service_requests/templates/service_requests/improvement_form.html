@@ -1,0 +1,41 @@
+{% extends 'service_requests/base.html' %}
+
+{% block title %}{% if is_new %}Create Improvement Action{% else %}Manage Improvement Action{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <p class="eyebrow mb-2">Service improvement</p>
+        <h1 class="page-title mb-1">{% if is_new %}Create an improvement action{% else %}{{ action.title }}{% endif %}</h1>
+        <p class="text-muted mb-0">Actions can link multiple feedback records. Dates are administrator-set operational targets, not official service deadlines.</p>
+    </div>
+    <a href="{% url 'admin_improvement_list' %}" class="btn btn-outline-secondary">Back to actions</a>
+</div>
+
+<section class="card soft-card shadow-sm">
+    <div class="card-body p-4">
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3"><label for="{{ form.title.id_for_label }}" class="form-label fw-semibold">Action title</label>{{ form.title }}{% if form.title.errors %}<div id="id_title_errors" class="field-errors" role="alert">{{ form.title.errors }}</div>{% endif %}</div>
+            <div class="mb-3"><label for="{{ form.issue_description.id_for_label }}" class="form-label fw-semibold">Issue description</label>{{ form.issue_description }}{% if form.issue_description.errors %}<div id="id_issue_description_errors" class="field-errors" role="alert">{{ form.issue_description.errors }}</div>{% endif %}</div>
+            <div class="mb-3"><label for="{{ form.related_feedback.id_for_label }}" class="form-label fw-semibold">Related feedback</label>{{ form.related_feedback }}<div class="form-text">Select one or more feedback records that informed this action.</div>{% if form.related_feedback.errors %}<div id="id_related_feedback_errors" class="field-errors" role="alert">{{ form.related_feedback.errors }}</div>{% endif %}</div>
+            <div class="row g-3">
+                <div class="col-md-6"><label for="{{ form.responsible_officer.id_for_label }}" class="form-label fw-semibold">Responsible officer</label>{{ form.responsible_officer }}{% if form.responsible_officer.errors %}<div class="field-errors" role="alert">{{ form.responsible_officer.errors }}</div>{% endif %}</div>
+                <div class="col-md-6"><label for="{{ form.priority.id_for_label }}" class="form-label fw-semibold">Priority</label>{{ form.priority }}{% if form.priority.errors %}<div class="field-errors" role="alert">{{ form.priority.errors }}</div>{% endif %}</div>
+                <div class="col-md-8"><label for="{{ form.planned_action.id_for_label }}" class="form-label fw-semibold">Planned action</label>{{ form.planned_action }}{% if form.planned_action.errors %}<div class="field-errors" role="alert">{{ form.planned_action.errors }}</div>{% endif %}</div>
+                <div class="col-md-4"><label for="{{ form.target_date.id_for_label }}" class="form-label fw-semibold">Target date <span class="optional-label">Optional</span></label>{{ form.target_date }}{% if form.target_date.errors %}<div class="field-errors" role="alert">{{ form.target_date.errors }}</div>{% endif %}</div>
+                <div class="col-md-6"><label for="{{ form.status.id_for_label }}" class="form-label fw-semibold">Status</label>{{ form.status }}{% if form.status.errors %}<div id="id_status_errors" class="field-errors" role="alert">{{ form.status.errors }}</div>{% endif %}</div>
+                <div class="col-md-6"><label for="{{ form.admin_note.id_for_label }}" class="form-label fw-semibold">Administrative note</label>{{ form.admin_note }}{% if form.admin_note.errors %}<div class="field-errors" role="alert">{{ form.admin_note.errors }}</div>{% endif %}</div>
+            </div>
+            <button type="submit" class="btn btn-primary mt-4">Save improvement action</button>
+        </form>
+        {% if action %}
+            <dl class="row border-top mt-4 pt-3 mb-0 small">
+                <dt class="col-sm-3">Created by</dt><dd class="col-sm-9">{% if action.created_by %}{{ action.created_by.get_username }}{% else %}—{% endif %}</dd>
+                <dt class="col-sm-3">Last updated by</dt><dd class="col-sm-9">{% if action.updated_by %}{{ action.updated_by.get_username }}{% else %}—{% endif %}</dd>
+                <dt class="col-sm-3">Completed at</dt><dd class="col-sm-9">{% if action.completed_at %}{{ action.completed_at|date:'M d, Y h:i A' }}{% else %}—{% endif %}</dd>
+            </dl>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

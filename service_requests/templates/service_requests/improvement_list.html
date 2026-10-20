@@ -1,0 +1,68 @@
+{% extends 'service_requests/base.html' %}
+
+{% block title %}Service Improvement Actions{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <p class="eyebrow mb-2">Service improvement</p>
+        <h1 class="page-title mb-1">Improvement actions</h1>
+        <p class="text-muted mb-0">{{ overdue_action_count }} action{{ overdue_action_count|pluralize }} past its administrator-set due date.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'admin_feedback_dashboard' %}" class="btn btn-outline-secondary">Back to feedback</a>
+        <a href="{% url 'admin_improvement_create' %}" class="btn btn-primary">Create improvement action</a>
+    </div>
+</div>
+
+<section class="card soft-card shadow-sm mb-4" aria-labelledby="action-filter-heading">
+    <div class="card-body p-4">
+        <h2 id="action-filter-heading" class="h5 section-title mb-3">Filter actions</h2>
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4"><label for="id_search" class="form-label fw-semibold">Search</label>{{ filter_form.search }}</div>
+            <div class="col-md-2"><label for="id_priority" class="form-label fw-semibold">Priority</label>{{ filter_form.priority }}</div>
+            <div class="col-md-2"><label for="id_status" class="form-label fw-semibold">Status</label>{{ filter_form.status }}</div>
+            <div class="col-md-2"><label for="id_owner" class="form-label fw-semibold">Responsible officer</label>{{ filter_form.owner }}</div>
+            <div class="col-md-2"><label for="id_due_before" class="form-label fw-semibold">Due on or before</label>{{ filter_form.due_before }}</div>
+            <div class="col-12 d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div class="form-check">{{ filter_form.overdue_only }}<label class="form-check-label" for="id_overdue_only">Overdue actions only</label></div>
+                <div class="d-flex gap-2"><button type="submit" class="btn btn-primary">Apply filters</button><a href="{% url 'admin_improvement_list' %}" class="btn btn-outline-secondary">Reset</a></div>
+            </div>
+        </form>
+    </div>
+</section>
+
+<section class="card soft-card shadow-sm" aria-labelledby="actions-heading">
+    <div class="card-body p-4">
+        <h2 id="actions-heading" class="h5 section-title mb-3">Tracked actions</h2>
+        <div class="table-responsive">
+            <table class="table align-middle requests-table">
+                <caption class="visually-hidden">Improvement actions with owners, priorities, due dates and feedback links</caption>
+                <thead><tr><th>Action</th><th>Priority</th><th>Status</th><th>Responsible officer</th><th>Target date</th><th>Source feedback</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+                <tbody>
+                    {% for action in actions %}
+                        <tr>
+                            <td>{{ action.title }}</td>
+                            <td>{{ action.get_priority_display }}</td>
+                            <td>{{ action.get_status_display }}</td>
+                            <td>{% if action.responsible_officer %}{{ action.responsible_officer.get_username }}{% else %}Unassigned{% endif %}</td>
+                            <td>{% if action.target_date %}{{ action.target_date|date:'M d, Y' }}{% if action.target_date < today and action.status != 'completed' and action.status != 'deferred' %}<span class="badge text-bg-danger ms-1">Overdue</span>{% endif %}{% else %}Not set{% endif %}</td>
+                            <td>{% for feedback in action.related_feedback.all %}<a href="{% url 'admin_feedback_detail' feedback.pk %}">{{ feedback.service_request.reference_number }}</a>{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+                            <td><a class="btn btn-outline-primary btn-sm" href="{% url 'admin_improvement_detail' action.pk %}">Manage</a></td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="7"><div class="table-empty-state"><strong>No improvement actions found.</strong><span>Create an action from feedback to track a service change.</span></div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if page_obj.has_other_pages %}
+            <nav class="mt-4" aria-label="Improvement action pagination"><ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search|urlencode }}{% endif %}{% if priority %}&priority={{ priority }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if owner %}&owner={{ owner.pk }}{% endif %}{% if due_before %}&due_before={{ due_before|date:'Y-m-d' }}{% endif %}{% if overdue_only %}&overdue_only=on{% endif %}">Previous</a></li>{% endif %}
+                <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search|urlencode }}{% endif %}{% if priority %}&priority={{ priority }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if owner %}&owner={{ owner.pk }}{% endif %}{% if due_before %}&due_before={{ due_before|date:'Y-m-d' }}{% endif %}{% if overdue_only %}&overdue_only=on{% endif %}">Next</a></li>{% endif %}
+            </ul></nav>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends 'service_requests/base.html' %}
+
+{% block title %}My Requests{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <p class="eyebrow mb-2">Citizen portal</p>
+        <h1 class="page-title mb-1">Welcome, {{ user.first_name|default:user.username }}</h1>
+        <p class="text-muted mb-0">Review your reports, check their status, or submit a new service issue.</p>
+    </div>
+    <a href="{% url 'create_request' %}" class="btn btn-primary btn-lg px-4 shadow-sm">
+        <i class="bi bi-plus-circle me-2" aria-hidden="true"></i>Report an issue
+    </a>
+</div>
+
+<section class="row g-3 mb-4" aria-label="Request summary">
+    <div class="col-6 col-xl-3"><div class="stat-card status-stat stat-total"><div class="small-label">Total requests</div><div class="stat-value">{{ total_cases }}</div></div></div>
+    <div class="col-6 col-xl-3"><div class="stat-card status-stat status-pending-stat"><div class="small-label">Pending</div><div class="stat-value">{{ pending_cases }}</div></div></div>
+    <div class="col-6 col-xl-3"><div class="stat-card status-stat status-progress-stat"><div class="small-label">In Progress</div><div class="stat-value">{{ in_progress_cases }}</div></div></div>
+    <div class="col-6 col-xl-3"><div class="stat-card status-stat status-resolved-stat"><div class="small-label">Resolved</div><div class="stat-value">{{ resolved_cases }}</div></div></div>
+</section>
+
+<div class="card soft-card shadow-sm mb-4">
+    <div class="card-body p-3 p-md-4">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label for="request-search" class="form-label fw-semibold">Search requests</label>
+                <input id="request-search" type="search" name="search" class="form-control" value="{{ search }}" placeholder="Reference, location or description">
+            </div>
+            <div class="col-md-3">
+                <label for="request-category" class="form-label fw-semibold">Category</label>
+                <select id="request-category" name="category" class="form-select">
+                    <option value="">All categories</option>
+                    {% for value, label in categories %}
+                        <option value="{{ value }}" {% if category == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="request-status" class="form-label fw-semibold">Status</label>
+                <select id="request-status" name="status" class="form-select">
+                    <option value="">All statuses</option>
+                    {% for value, label in statuses %}
+                        <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1 d-grid gap-2">
+                <button type="submit" class="btn btn-primary">Filter</button>
+                <a href="{% url 'request_list' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="list-group request-stack">
+    {% for request in page_obj %}
+        <a href="{% url 'request_detail' request.pk %}" class="request-item list-group-item list-group-item-action d-flex justify-content-between align-items-center flex-wrap gap-3 py-3">
+            <div class="flex-grow-1">
+                <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
+                    <strong class="text-primary">{{ request.reference_number }}</strong>
+                    <span class="mini-badge">{{ request.get_category_display }}</span>
+                </div>
+                <div class="text-muted small mb-2">{{ request.location }} · {{ request.created_at|date:'M d, Y' }}</div>
+                <p class="mb-0 text-body-secondary">{{ request.description|truncatechars:120 }}</p>
+            </div>
+            <div>
+                    <span class="badge-status status-{{ request.status }}"><i class="bi {% if request.status == 'pending' %}bi-hourglass-split{% elif request.status == 'in_progress' %}bi-arrow-repeat{% else %}bi-check-circle{% endif %} me-1" aria-hidden="true"></i>{{ request.get_status_display }}</span>
+            </div>
+        </a>
+    {% empty %}
+        <div class="empty-state">
+            <span class="empty-state-icon"><i class="bi bi-inbox" aria-hidden="true"></i></span>
+            {% if search or category or status %}
+                <h2 class="h5">No requests match these filters</h2>
+                <p>Try adjusting your search, category or status.</p>
+                <a href="{% url 'request_list' %}" class="btn btn-outline-primary">Clear filters</a>
+            {% else %}
+                <h2 class="h5">You have not reported an issue yet</h2>
+                <p>Your submitted requests and their progress will appear here.</p>
+                <a href="{% url 'create_request' %}" class="btn btn-primary"><i class="bi bi-plus-circle me-2" aria-hidden="true"></i>Report an Issue</a>
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>
+
+{% if page_obj.has_other_pages %}
+<nav class="mt-4" aria-label="Request pagination">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if category %}&category={{ category }}{% endif %}{% if status %}&status={{ status }}{% endif %}">Previous</a></li>
+        {% endif %}
+        <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if category %}&category={{ category }}{% endif %}{% if status %}&status={{ status }}{% endif %}">Next</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

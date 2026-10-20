@@ -1,0 +1,114 @@
+{% extends 'service_requests/base.html' %}
+
+{% block title %}Murang'a County Services{% endblock %}
+{% block meta_description %}<meta name="description" content="Submit and track Murang'a County public service requests through this independent service portal.">{% endblock %}
+
+{% block content %}
+<section class="hero-section">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-7">
+            <span class="eyebrow">Public Service Portal</span>
+            <h1 class="page-title landing-title mb-3">Your Public Service Requests, Made Simpler.</h1>
+            <p class="landing-copy mb-4">
+                Submit a service request, follow its progress, and stay informed as it is reviewed and processed.
+            </p>
+            <div class="landing-actions d-flex flex-wrap gap-3">
+                {% if user.is_staff %}
+                    <a href="{% url 'admin_dashboard' %}" class="btn btn-primary px-4"><i class="bi bi-graph-up-arrow me-2" aria-hidden="true"></i>Open Admin Dashboard</a>
+                {% else %}
+                    <a href="{% if user.is_authenticated %}{% url 'create_request' %}{% else %}{% url 'register' %}{% endif %}" class="btn btn-primary px-4"><i class="bi bi-plus-circle me-2" aria-hidden="true"></i>Submit a Request</a>
+                    <a href="{% url 'request_list' %}" class="btn btn-outline-primary px-4"><i class="bi bi-card-list me-2" aria-hidden="true"></i>Track My Request</a>
+                    {% if not user.is_authenticated %}<a href="{% url 'login' %}" class="landing-signin">Sign in to your account</a>{% endif %}
+                {% endif %}
+            </div>
+            <p class="hero-trust-note mt-3 mb-0">Clearer communication. Better request tracking. More accessible public services.</p>
+        </div>
+        <div class="col-lg-5">
+            <div class="hero-service-preview" aria-hidden="true">
+                <div class="hero-preview-heading"><i class="bi bi-clipboard2-check"></i><span>Service request</span><span class="hero-preview-status">Pending</span></div>
+                <div class="hero-preview-line hero-preview-line-wide"></div>
+                <div class="hero-preview-line hero-preview-line-medium"></div>
+                <div class="hero-preview-progress"><span></span><span></span><span></span></div>
+                <div class="hero-preview-caption">Follow each step from submission to resolution</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% if not user.is_staff %}
+<section class="quick-actions mt-4" aria-label="Quick actions">
+    <a class="quick-action-card" href="{% if user.is_authenticated %}{% url 'create_request' %}{% else %}{% url 'register' %}{% endif %}">
+        <span class="category-icon"><i class="bi bi-plus-circle" aria-hidden="true"></i></span>
+        <span><strong>Submit a Request</strong><small>Report a public service issue.</small></span>
+        <i class="bi bi-arrow-right" aria-hidden="true"></i>
+    </a>
+    <a class="quick-action-card" href="{% url 'request_list' %}">
+        <span class="category-icon"><i class="bi bi-card-list" aria-hidden="true"></i></span>
+        <span><strong>My Requests</strong><small>Track progress on requests linked to your account.</small></span>
+        <i class="bi bi-arrow-right" aria-hidden="true"></i>
+    </a>
+    <a class="quick-action-card" href="#help">
+        <span class="category-icon"><i class="bi bi-question-circle" aria-hidden="true"></i></span>
+        <span><strong>Get Help</strong><small>Find guidance on using the portal.</small></span>
+        <i class="bi bi-arrow-right" aria-hidden="true"></i>
+    </a>
+</section>
+{% endif %}
+
+<section id="services" class="mt-5" aria-labelledby="services-heading">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-end gap-2 mb-3">
+        <div>
+            <p class="eyebrow mb-2">County services</p>
+            <h2 id="services-heading" class="h3 section-title mb-0">What would you like to report?</h2>
+        </div>
+        <p class="text-muted mb-0">Choose a category when you submit your report.</p>
+    </div>
+    <div class="row g-3">
+        {% for category in category_cards %}
+            <div class="col-sm-6 col-lg-4">
+                <article class="category-card h-100">
+                    <span class="category-icon"><i class="bi {{ category.icon }}" aria-hidden="true"></i></span>
+                    <h3 class="h5">{{ category.label }}</h3>
+                    <p>{{ category.description }}</p>
+                    {% if not user.is_staff %}
+                        <a class="category-action" href="{% url 'create_request' %}?category={{ category.value }}">Submit this service <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                    {% endif %}
+                </article>
+            </div>
+        {% empty %}
+            <div class="col-12"><p class="empty-service-state">No service categories are currently available.</p></div>
+        {% endfor %}
+    </div>
+</section>
+
+{% if has_request_stats %}
+<section class="landing-stats mt-5" aria-label="Request statistics">
+    {% for item in landing_stats %}
+        <div class="landing-stat"><span>{{ item.label }}</span><strong>{{ item.value }}</strong></div>
+    {% endfor %}
+</section>
+{% endif %}
+
+<section id="how-it-works" class="how-it-works mt-5" aria-labelledby="how-heading">
+    <p class="eyebrow mb-2">Simple steps</p>
+    <h2 id="how-heading" class="h3 section-title mb-4">How it works</h2>
+    <ol class="workflow-steps">
+        <li><span>1</span><div><h3>Submit</h3><p>Provide the service category, location and details.</p></div></li>
+        <li><span>2</span><div><h3>Track</h3><p>Sign in to see your request and its current status.</p></div></li>
+        <li><span>3</span><div><h3>Receive an update</h3><p>Review the outcome when county staff update the request.</p></div></li>
+    </ol>
+</section>
+
+<section id="help" class="help-section mt-5" aria-labelledby="help-heading">
+    <div>
+        <p class="eyebrow mb-2">Portal guidance</p>
+        <h2 id="help-heading" class="h4 section-title">Need help using this portal?</h2>
+        <p class="mb-0">Create an account to submit requests. Sign in to review requests associated with your account. For a specific issue, include its reference number when you review the request details.</p>
+    </div>
+    {% if user.is_authenticated and not user.is_staff %}
+        <a href="{% url 'request_list' %}" class="btn btn-outline-primary">Open My Requests</a>
+    {% elif not user.is_authenticated %}
+        <a href="{% url 'login' %}" class="btn btn-outline-primary">Sign in</a>
+    {% endif %}
+</section>
+{% endblock %}

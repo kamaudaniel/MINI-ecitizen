@@ -1,0 +1,210 @@
+{% extends 'service_requests/base.html' %}
+
+{% block title %}Citizen Feedback & Service Quality{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <p class="eyebrow mb-2">Service improvement</p>
+        <h1 class="page-title mb-1">Citizen Feedback &amp; Service Quality</h1>
+        <p class="text-muted mb-0">Summary cards and feedback breakdowns follow the filters below. Timing figures use recorded request timestamps and applicable request filters.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'admin_improvement_list' %}" class="btn btn-outline-primary">Improvement actions</a>
+        <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">Back to requests</a>
+    </div>
+</div>
+
+<section aria-label="Feedback summary metrics" class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3"><div class="stat-card border-primary h-100"><div class="small-label">Total feedback</div><div class="stat-value text-primary">{{ total_feedback }}</div></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="stat-card border-success h-100"><div class="small-label">Average rating</div><div class="stat-value text-success">{% if average_rating != None %}{{ average_rating|floatformat:1 }} / 5{% else %}—{% endif %}</div></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="stat-card border-success h-100"><div class="small-label">Positive (4–5 stars)</div><div class="stat-value">{{ positive_count }} <span class="fs-6">({{ positive_percentage }}%)</span></div></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="stat-card border-warning h-100"><div class="small-label">Low (1–2 stars)</div><div class="stat-value">{{ low_count }} <span class="fs-6">({{ low_percentage }}%)</span></div></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="stat-card border-info h-100"><div class="small-label">Improvement suggestions</div><div class="stat-value">{{ suggestions_count }}</div></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="stat-card border-warning h-100"><div class="small-label">Awaiting review</div><div class="stat-value">{{ awaiting_review_count }}</div></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="stat-card border-success h-100"><div class="small-label">Addressed</div><div class="stat-value">{{ addressed_count }}</div></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="stat-card border-info h-100"><div class="small-label">Resolved requests without feedback</div><div class="stat-value">{{ eligible_without_feedback }}</div></div></div>
+</section>
+<div class="alert alert-light border d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2" role="status">
+    <span>{{ overdue_action_count }} improvement action{{ overdue_action_count|pluralize }} past its administrator-set target date. These are action due dates, not service-level commitments.</span>
+    <a href="{% url 'admin_improvement_list' %}?overdue_only=on" class="btn btn-sm btn-outline-primary">View due actions</a>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-5">
+        <section class="card soft-card shadow-sm h-100" aria-labelledby="timing-heading">
+            <div class="card-body p-4">
+                <h2 id="timing-heading" class="h5 section-title">Request response times</h2>
+                <p class="text-muted small">Elapsed calendar hours; historical requests without recorded timestamps are excluded. No service targets are configured, so overdue compliance is not reported.</p>
+                <dl class="row mb-0">
+                    <dt class="col-7">Average initial response</dt>
+                    <dd class="col-5 text-end">{% if average_response_hours != None %}{{ average_response_hours|floatformat:1 }} hours{% else %}Not available{% endif %}</dd>
+                    <dt class="col-7">Median initial response</dt>
+                    <dd class="col-5 text-end">{% if median_response_hours != None %}{{ median_response_hours|floatformat:1 }} hours{% else %}Not available{% endif %}</dd>
+                    <dt class="col-7">Initial response sample</dt><dd class="col-5 text-end">{{ response_sample_count }}</dd>
+                    <dt class="col-7">Average resolution</dt>
+                    <dd class="col-5 text-end">{% if average_resolution_hours != None %}{{ average_resolution_hours|floatformat:1 }} hours{% else %}Not available{% endif %}</dd>
+                    <dt class="col-7">Median resolution</dt>
+                    <dd class="col-5 text-end">{% if median_resolution_hours != None %}{{ median_resolution_hours|floatformat:1 }} hours{% else %}Not available{% endif %}</dd>
+                    <dt class="col-7">Completed resolution sample</dt><dd class="col-5 text-end">{{ resolution_sample_count }}</dd>
+                    <dt class="col-7">Unresolved requests</dt><dd class="col-5 text-end">{{ unresolved_count }}</dd>
+                </dl>
+                <h3 class="h6 section-title mt-4">Average elapsed time by category</h3>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <caption class="visually-hidden">Average initial response and resolution hours grouped by request category</caption>
+                        <thead><tr><th>Category</th><th>Initial response</th><th>Resolution</th></tr></thead>
+                        <tbody>
+                            {% for item in timing_by_category %}
+                                <tr><td>{{ item.label }}</td><td>{% if item.response_average != None %}{{ item.response_average|floatformat:1 }} h{% else %}—{% endif %}</td><td>{% if item.resolution_average != None %}{{ item.resolution_average|floatformat:1 }} h{% else %}—{% endif %}</td></tr>
+                            {% empty %}
+                                <tr><td colspan="3" class="text-muted">No timing records match these filters.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+    <div class="col-lg-7">
+        <section class="card soft-card shadow-sm h-100" aria-labelledby="rating-heading">
+            <div class="card-body p-4">
+                <h2 id="rating-heading" class="h5 section-title">Rating distribution</h2>
+                <ul class="list-unstyled mb-0">
+                    {% for item in rating_distribution %}
+                        <li class="rating-distribution-row">
+                            <span>{{ item.label }}</span>
+                            <span class="rating-distribution-track" aria-hidden="true"><span style="width: {{ item.percentage }}%"></span></span>
+                            <strong>{{ item.count }}</strong>
+                            <span class="text-muted small">{{ item.percentage }}%</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <p class="text-muted small mt-3 mb-0">Positive ratings are 4–5 stars; low ratings are 1–2 stars; 3 stars is neutral. Percentages use all feedback submissions.</p>
+            </div>
+        </section>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <section class="card soft-card shadow-sm h-100" aria-labelledby="category-ratings-heading">
+            <div class="card-body p-4">
+                <h2 id="category-ratings-heading" class="h5 section-title">Ratings by service category</h2>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <caption class="visually-hidden">Feedback volume and average rating by service category</caption>
+                        <thead><tr><th>Category</th><th>Feedback</th><th>Average rating</th></tr></thead>
+                        <tbody>
+                            {% for item in category_ratings %}
+                                <tr><td>{{ item.label }}</td><td>{{ item.count }}</td><td>{{ item.average|floatformat:1 }} / 5</td></tr>
+                            {% empty %}
+                                <tr><td colspan="3" class="text-muted">No feedback is available yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+    <div class="col-lg-6">
+        <section class="card soft-card shadow-sm h-100" aria-labelledby="suggestion-categories-heading">
+            <div class="card-body p-4">
+                <h2 id="suggestion-categories-heading" class="h5 section-title">Suggestion categories</h2>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <caption class="visually-hidden">Improvement suggestions grouped by citizen-selected category</caption>
+                        <thead><tr><th>Category</th><th>Suggestions</th></tr></thead>
+                        <tbody>
+                            {% for item in suggestion_categories %}
+                                <tr><td>{{ item.label }}</td><td>{{ item.count }}</td></tr>
+                            {% empty %}
+                                <tr><td colspan="2" class="text-muted">No categorized suggestions match these filters.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <section class="card soft-card shadow-sm" aria-labelledby="trend-heading">
+            <div class="card-body p-4">
+                <h2 id="trend-heading" class="h5 section-title">Monthly service and feedback trends</h2>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <caption class="visually-hidden">Monthly service request volume, feedback volume and response/resolution averages</caption>
+                        <thead><tr><th>Month</th><th>Requests</th><th>Feedback</th><th>Avg. response</th><th>Avg. resolution</th></tr></thead>
+                        <tbody>
+                            {% for item in monthly_trends %}
+                                <tr>
+                                    <td>{{ item.month|date:'F Y' }}</td><td>{{ item.request_count }}</td><td>{{ item.feedback_count }}</td>
+                                    <td>{% if item.response_average != None %}{{ item.response_average|floatformat:1 }} h{% else %}—{% endif %}</td>
+                                    <td>{% if item.resolution_average != None %}{{ item.resolution_average|floatformat:1 }} h{% else %}—{% endif %}</td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="5" class="text-muted">No request or feedback records match these filters.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<section class="card soft-card shadow-sm mb-4" aria-labelledby="feedback-filter-heading">
+    <div class="card-body p-4">
+        <h2 id="feedback-filter-heading" class="h5 section-title mb-3">Find feedback</h2>
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4"><label class="form-label fw-semibold" for="id_search">Request reference</label>{{ feedback_filter_form.search }}{% if feedback_filter_form.search.errors %}<div class="field-errors" role="alert">{{ feedback_filter_form.search.errors }}</div>{% endif %}</div>
+            <div class="col-md-2"><label class="form-label fw-semibold" for="id_rating">Rating</label>{{ feedback_filter_form.rating }}{% if feedback_filter_form.rating.errors %}<div class="field-errors" role="alert">{{ feedback_filter_form.rating.errors }}</div>{% endif %}</div>
+            <div class="col-md-3"><label class="form-label fw-semibold" for="id_category">Service category</label>{{ feedback_filter_form.category }}{% if feedback_filter_form.category.errors %}<div class="field-errors" role="alert">{{ feedback_filter_form.category.errors }}</div>{% endif %}</div>
+            <div class="col-md-3"><label class="form-label fw-semibold" for="id_review_status">Review status</label>{{ feedback_filter_form.review_status }}{% if feedback_filter_form.review_status.errors %}<div class="field-errors" role="alert">{{ feedback_filter_form.review_status.errors }}</div>{% endif %}</div>
+            <div class="col-md-3"><label class="form-label fw-semibold" for="id_date_from">From date</label>{{ feedback_filter_form.date_from }}{% if feedback_filter_form.date_from.errors %}<div class="field-errors" role="alert">{{ feedback_filter_form.date_from.errors }}</div>{% endif %}</div>
+            <div class="col-md-3"><label class="form-label fw-semibold" for="id_date_to">To date</label>{{ feedback_filter_form.date_to }}{% if feedback_filter_form.date_to.errors %}<div class="field-errors" role="alert">{{ feedback_filter_form.date_to.errors }}</div>{% endif %}</div>
+            <div class="col-md-3"><label class="form-label fw-semibold" for="id_sort">Sort</label>{{ feedback_filter_form.sort }}{% if feedback_filter_form.sort.errors %}<div class="field-errors" role="alert">{{ feedback_filter_form.sort.errors }}</div>{% endif %}</div>
+            <div class="col-md-3 d-flex gap-2"><button class="btn btn-primary flex-grow-1" type="submit">Apply filters</button><a class="btn btn-outline-secondary" href="{% url 'admin_feedback_dashboard' %}">Reset</a></div>
+        </form>
+    </div>
+</section>
+
+<section class="card soft-card shadow-sm" aria-labelledby="feedback-records-heading">
+    <div class="card-body p-4">
+        <h2 id="feedback-records-heading" class="h5 section-title mb-3">Feedback records</h2>
+        <div class="table-responsive">
+            <table class="table align-middle requests-table">
+                <caption class="visually-hidden">Citizen feedback with service reference, rating, suggestion and review status</caption>
+                <thead><tr><th>Reference</th><th>Rating</th><th>Comment</th><th>Suggestion</th><th>Submitted</th><th>Review status</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+                <tbody>
+                    {% for item in feedback_records %}
+                        <tr>
+                            <td>{{ item.service_request.reference_number }}</td>
+                            <td>{{ item.rating }} / 5</td>
+                            <td>{{ item.comment|default:'—'|truncatechars:70 }}</td>
+                            <td>{{ item.suggestion|default:'—'|truncatechars:70 }}</td>
+                            <td>{{ item.created_at|date:'M d, Y' }}</td>
+                            <td><span class="badge-status feedback-status-{{ item.review_status }}">{{ item.get_review_status_display }}</span></td>
+                            <td><a class="btn btn-outline-primary btn-sm" href="{% url 'admin_feedback_detail' item.pk %}">Review</a></td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="7"><div class="table-empty-state"><strong>No feedback matches these filters.</strong><span>New citizen feedback will appear here after a request is resolved.</span></div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if page_obj.has_other_pages %}
+            <nav class="mt-4" aria-label="Feedback pagination">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search|urlencode }}{% endif %}{% if rating %}&rating={{ rating }}{% endif %}{% if category %}&category={{ category }}{% endif %}{% if review_status %}&review_status={{ review_status }}{% endif %}{% if date_from %}&date_from={{ date_from|date:'Y-m-d' }}{% endif %}{% if date_to %}&date_to={{ date_to|date:'Y-m-d' }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">Previous</a></li>{% endif %}
+                    <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search|urlencode }}{% endif %}{% if rating %}&rating={{ rating }}{% endif %}{% if category %}&category={{ category }}{% endif %}{% if review_status %}&review_status={{ review_status }}{% endif %}{% if date_from %}&date_from={{ date_from|date:'Y-m-d' }}{% endif %}{% if date_to %}&date_to={{ date_to|date:'Y-m-d' }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">Next</a></li>{% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

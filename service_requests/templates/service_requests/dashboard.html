@@ -1,0 +1,293 @@
+{% extends 'service_requests/base.html' %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <p class="eyebrow mb-2">Operations center</p>
+        <h1 class="page-title mb-1">County service dashboard</h1>
+        <p class="text-muted mb-0">Monitor requests, review trends, and update service status for every reported issue.</p>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card border-primary">
+            <div class="small-label">Total cases</div>
+            <div class="stat-value text-primary">{{ total }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card border-warning">
+            <div class="small-label">Pending</div>
+            <div class="stat-value status-count-pending">{{ pending_cases }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card status-stat status-progress-stat">
+            <div class="small-label">In Progress</div>
+            <div class="stat-value">{{ in_progress_cases }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card border-success">
+            <div class="small-label">Resolved Cases</div>
+            <div class="stat-value text-success">{{ resolved_cases }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card soft-card shadow-sm mb-4">
+    <div class="card-body p-3 p-md-4">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label for="id_search" class="form-label fw-semibold">Search requests</label>
+                {{ filter_form.search }}
+                {% if filter_form.search.errors %}<div id="id_search_errors" class="field-errors" role="alert">{{ filter_form.search.errors }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+                <label for="id_category" class="form-label fw-semibold">Category</label>
+                {{ filter_form.category }}
+                {% if filter_form.category.errors %}<div id="id_category_errors" class="field-errors" role="alert">{{ filter_form.category.errors }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+                <label for="id_status" class="form-label fw-semibold">Status</label>
+                {{ filter_form.status }}
+                {% if filter_form.status.errors %}<div id="id_status_errors" class="field-errors" role="alert">{{ filter_form.status.errors }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+                <label for="id_date_from" class="form-label fw-semibold">From date</label>
+                {{ filter_form.date_from }}
+                {% if filter_form.date_from.errors %}<div id="id_date_from_errors" class="field-errors" role="alert">{{ filter_form.date_from.errors }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+                <label for="id_date_to" class="form-label fw-semibold">To date</label>
+                {{ filter_form.date_to }}
+                {% if filter_form.date_to.errors %}<div id="id_date_to_errors" class="field-errors" role="alert">{{ filter_form.date_to.errors }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+                <label for="id_sort" class="form-label fw-semibold">Sort by date</label>
+                {{ filter_form.sort }}
+                {% if filter_form.sort.errors %}<div id="id_sort_errors" class="field-errors" role="alert">{{ filter_form.sort.errors }}</div>{% endif %}
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">Apply filters</button>
+                <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card soft-card shadow-sm h-100">
+            <div class="card-body p-4">
+                <h2 class="h5 section-title mb-1">Requests by status</h2>
+                <p class="text-muted small mb-3">All requests, independent of table filters.</p>
+                {% if analytics_has_data %}
+                    <div class="chart-frame">
+                        <canvas id="statusChart" role="img" aria-label="Requests grouped by Pending, In Progress and Resolved" aria-describedby="status-chart-legend"></canvas>
+                        <p class="chart-fallback" data-chart-fallback role="status" hidden>Chart unavailable. The status totals are listed below.</p>
+                    </div>
+                {% else %}
+                    <div class="chart-empty"><i class="bi bi-bar-chart-line" aria-hidden="true"></i><span>Charts will appear when requests are submitted.</span></div>
+                {% endif %}
+                <ul id="status-chart-legend" class="chart-legend status-chart-legend" aria-label="Request totals by status">
+                    {% for item in status_summary %}
+                        <li><span class="legend-swatch status-swatch-{{ item.status }}"></span><span>{{ item.label }}</span><strong>{{ item.count }}</strong></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card soft-card shadow-sm h-100">
+            <div class="card-body p-4">
+                <h2 class="h5 section-title mb-1">Requests by category</h2>
+                <p class="text-muted small mb-3">All requests, independent of table filters.</p>
+                {% if analytics_has_data %}
+                    <div class="chart-frame chart-frame-tall">
+                        <canvas id="categoryChart" role="img" aria-label="Requests grouped by service category" aria-describedby="category-chart-legend"></canvas>
+                        <p class="chart-fallback" data-chart-fallback role="status" hidden>Chart unavailable. The category totals are listed below.</p>
+                    </div>
+                {% else %}
+                    <div class="chart-empty"><i class="bi bi-bar-chart-line" aria-hidden="true"></i><span>Category analytics will appear when requests are submitted.</span></div>
+                {% endif %}
+                <ul id="category-chart-legend" class="chart-legend category-chart-legend" aria-label="Request totals by category">
+                    {% for item in category_summary %}
+                        <li><span class="legend-swatch legend-swatch-blue"></span><span>{{ item.label }}</span><strong>{{ item.count }}</strong></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="card soft-card shadow-sm mb-4" aria-labelledby="recent-feedback-heading">
+    <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <h2 id="recent-feedback-heading" class="h5 section-title mb-1">Recent citizen feedback</h2>
+                <p class="text-muted small mb-0">Latest comments and suggestions submitted by citizens.</p>
+            </div>
+            <a href="{% url 'admin_feedback_dashboard' %}" class="btn btn-outline-primary btn-sm">View all feedback</a>
+        </div>
+        {% for feedback in recent_feedback %}
+            <article class="feedback-preview{% if not forloop.last %} border-bottom{% endif %} py-3">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                    <div>
+                        <a href="{% url 'admin_feedback_detail' feedback.pk %}" class="fw-semibold">{{ feedback.service_request.reference_number }}</a>
+                        <span class="text-muted ms-2">{{ feedback.service_request.get_category_display }}</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="feedback-stars">{{ feedback.rating }} / 5</span>
+                        <span class="badge-status feedback-status-{{ feedback.review_status }}">{{ feedback.get_review_status_display }}</span>
+                        <a href="{% url 'admin_feedback_detail' feedback.pk %}" class="btn btn-outline-primary btn-sm">Review</a>
+                    </div>
+                </div>
+                <p class="mb-1"><strong>Comment:</strong> {{ feedback.comment|default:'No written comment.'|linebreaksbr }}</p>
+                {% if feedback.suggestion %}
+                    <p class="mb-1"><strong>What can we do better?</strong> {% if feedback.suggestion_category %}{{ feedback.get_suggestion_category_display }}: {% endif %}{{ feedback.suggestion|linebreaksbr }}</p>
+                {% endif %}
+                <small class="text-muted">Submitted {{ feedback.created_at|date:'M d, Y h:i A' }}</small>
+            </article>
+        {% empty %}
+            <div class="table-empty-state">
+                <strong>No citizen feedback has been submitted yet.</strong>
+                <span>Comments will appear here after citizens leave feedback on resolved requests.</span>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+
+<div class="card soft-card dashboard-table-card shadow-sm border-0">
+    <div class="card-body p-4">
+        <h4 class="section-title mb-3">Recent requests</h4>
+        <div class="table-responsive">
+            <table class="table align-middle requests-table">
+                <caption class="visually-hidden">Recent service requests with status and management actions</caption>
+                <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>Citizen</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Location</th>
+                        <th>Created</th>
+                        <th><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in page_obj %}
+                        <tr>
+                            <td><a href="{% url 'request_detail' item.pk %}" class="fw-semibold text-primary text-decoration-none">{{ item.reference_number }}</a></td>
+                            <td>{{ item.citizen.username }}</td>
+                            <td>{{ item.get_category_display }}</td>
+                            <td><span class="badge-status status-{{ item.status }}"><i class="bi {% if item.status == 'pending' %}bi-hourglass-split{% elif item.status == 'in_progress' %}bi-arrow-repeat{% else %}bi-check-circle{% endif %} me-1" aria-hidden="true"></i>{{ item.get_status_display }}</span></td>
+                            <td>{{ item.location }}</td>
+                            <td>{{ item.created_at|date:'M d, Y' }}</td>
+                            <td><a href="{% url 'request_detail' item.pk %}" class="btn btn-outline-primary btn-sm table-action" aria-label="Manage status for {{ item.reference_number }}"><i class="bi bi-sliders me-1" aria-hidden="true"></i>Manage</a></td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7">
+                                <div class="table-empty-state">
+                                    {% if search or category or status or date_from or date_to %}
+                                        <strong>No requests match these filters.</strong>
+                                        <span>Adjust the search or filters to see more cases.</span>
+                                    {% else %}
+                                        <strong>No service requests have been submitted yet.</strong>
+                                        <span>New citizen reports will appear here.</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <nav class="mt-4" aria-label="Admin pagination">
+            <ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if category %}&category={{ category }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if date_from %}&date_from={{ date_from|date:'Y-m-d' }}{% endif %}{% if date_to %}&date_to={{ date_to|date:'Y-m-d' }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">Previous</a></li>
+                {% endif %}
+                <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if category %}&category={{ category }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if date_from %}&date_from={{ date_from|date:'Y-m-d' }}{% endif %}{% if date_to %}&date_to={{ date_to|date:'Y-m-d' }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">Next</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+
+{% if analytics_has_data %}
+{{ status_labels|json_script:'status-chart-labels' }}
+{{ status_values|json_script:'status-chart-values' }}
+{{ category_labels|json_script:'category-chart-labels' }}
+{{ category_values|json_script:'category-chart-values' }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const statusCtx = document.getElementById('statusChart');
+    const categoryCtx = document.getElementById('categoryChart');
+
+    if (typeof Chart === 'undefined') {
+        document.querySelectorAll('[data-chart-fallback]').forEach((message) => {
+            message.hidden = false;
+            message.previousElementSibling.hidden = true;
+        });
+    } else {
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: JSON.parse(document.getElementById('status-chart-labels').textContent),
+                datasets: [{
+                    data: JSON.parse(document.getElementById('status-chart-values').textContent),
+                    backgroundColor: ['#b5121b', '#006b3f', '#4b9b70'],
+                    borderColor: '#ffffff',
+                    borderWidth: 3,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: true },
+                }
+      }
+        });
+
+        new Chart(categoryCtx, {
+            type: 'bar',
+            data: {
+                labels: JSON.parse(document.getElementById('category-chart-labels').textContent),
+                datasets: [{
+                    label: 'Requests',
+                    data: JSON.parse(document.getElementById('category-chart-values').textContent),
+                    backgroundColor: '#006b3f',
+                    borderRadius: 3,
+                    maxBarThickness: 26,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e5ebef' } },
+                    y: { grid: { display: false } },
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: true },
+                }
+      }
+        });
+    }
+</script>
+{% endif %}
+{% endblock %}

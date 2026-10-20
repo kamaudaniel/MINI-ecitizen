@@ -1,0 +1,44 @@
+{% extends 'service_requests/base.html' %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card auth-card shadow-sm border-0">
+            <div class="card-body p-4 p-md-5">
+                <p class="eyebrow">Citizen access</p>
+                <h1 class="h2 mb-2">Create your account</h1>
+                <p class="text-muted mb-4">Use one account to submit reports and follow their progress.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form.non_field_errors }}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                            {% if field.field.widget.input_type == 'password' %}
+                                <div class="password-field">
+                                    {{ field }}
+                                    <button type="button" class="password-toggle" data-toggle-password data-show-label="Show {{ field.label|lower }}" data-hide-label="Hide {{ field.label|lower }}" aria-label="Show {{ field.label|lower }}" aria-controls="{{ field.id_for_label }}">
+                                        <i class="bi bi-eye" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                            {% else %}
+                                {{ field }}
+                            {% endif %}
+                            {% if field.errors %}<div id="{{ field.id_for_label }}_errors" class="field-errors" role="alert">{{ field.errors }}</div>{% endif %}
+                            {% if field.help_text %}
+                                <small id="{{ field.id_for_label }}_helptext" class="form-text text-muted">{{ field.help_text }}</small>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary w-100 mt-2"><i class="bi bi-person-plus me-2" aria-hidden="true"></i>Create account</button>
+                </form>
+                <p class="text-center mt-3 mb-0">
+                    Already have an account? <a href="{% url 'login' %}">Login</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

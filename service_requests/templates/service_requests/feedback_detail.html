@@ -1,0 +1,73 @@
+{% extends 'service_requests/base.html' %}
+
+{% block title %}Review Feedback {{ feedback.service_request.reference_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <p class="eyebrow mb-2">Feedback review</p>
+        <h1 class="page-title mb-1">{{ feedback.service_request.reference_number }}</h1>
+        <p class="text-muted mb-0">{{ feedback.service_request.get_category_display }} · submitted {{ feedback.created_at|date:'M d, Y h:i A' }}</p>
+    </div>
+    <a href="{% url 'admin_feedback_dashboard' %}" class="btn btn-outline-secondary">Back to feedback</a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <section class="card soft-card shadow-sm mb-4" aria-labelledby="citizen-feedback-heading">
+            <div class="card-body p-4">
+                <h2 id="citizen-feedback-heading" class="h5 section-title">Citizen feedback</h2>
+                <p><strong>Rating:</strong> {{ feedback.rating }} / 5 — {{ feedback.get_rating_display }}</p>
+                <p><strong>Comment:</strong><br>{{ feedback.comment|default:'No written comment provided.'|linebreaksbr }}</p>
+                <p class="mb-0"><strong>Suggestion:</strong><br>
+                    {% if feedback.suggestion_category %}{{ feedback.get_suggestion_category_display }}{% if feedback.suggestion %}: {% endif %}{% endif %}
+                    {{ feedback.suggestion|default:'No improvement suggestion provided.'|linebreaksbr }}
+                </p>
+            </div>
+        </section>
+        <section class="card soft-card shadow-sm" aria-labelledby="request-heading">
+            <div class="card-body p-4">
+                <h2 id="request-heading" class="h5 section-title">Related request</h2>
+                <p><strong>Status:</strong> {{ feedback.service_request.get_status_display }}</p>
+                <p><strong>Category:</strong> {{ feedback.service_request.get_category_display }}</p>
+                <p><strong>Location:</strong> {{ feedback.service_request.location }}</p>
+                <a href="{% url 'request_detail' feedback.service_request.pk %}" class="btn btn-outline-primary btn-sm">View request</a>
+            </div>
+        </section>
+    </div>
+    <div class="col-lg-6">
+        <section class="card soft-card shadow-sm" aria-labelledby="review-management-heading">
+            <div class="card-body p-4">
+                <h2 id="review-management-heading" class="h5 section-title mb-3">Review and response</h2>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3"><label for="{{ form.review_status.id_for_label }}" class="form-label fw-semibold">Review status</label>{{ form.review_status }}{% if form.review_status.errors %}<div id="id_review_status_errors" class="field-errors" role="alert">{{ form.review_status.errors }}</div>{% endif %}</div>
+                    <div class="mb-3"><label for="{{ form.internal_note.id_for_label }}" class="form-label fw-semibold">Internal note <span class="optional-label">Staff only</span></label>{{ form.internal_note }}{% if form.internal_note.errors %}<div id="id_internal_note_errors" class="field-errors" role="alert">{{ form.internal_note.errors }}</div>{% endif %}</div>
+                    <div class="mb-3"><label for="{{ form.planned_action.id_for_label }}" class="form-label fw-semibold">Planned corrective action</label>{{ form.planned_action }}{% if form.planned_action.errors %}<div id="id_planned_action_errors" class="field-errors" role="alert">{{ form.planned_action.errors }}</div>{% endif %}</div>
+                    <div class="mb-3"><label for="{{ form.admin_response.id_for_label }}" class="form-label fw-semibold">Response to citizen</label>{{ form.admin_response }}{% if form.admin_response.errors %}<div id="id_admin_response_errors" class="field-errors" role="alert">{{ form.admin_response.errors }}</div>{% endif %}</div>
+                    <div class="form-check mb-3">{{ form.publish_response }}<label class="form-check-label" for="{{ form.publish_response.id_for_label }}">{{ form.publish_response.label }}</label>{% if form.publish_response.errors %}<div class="field-errors" role="alert">{{ form.publish_response.errors }}</div>{% endif %}</div>
+                    <button type="submit" class="btn btn-primary">Save review</button>
+                </form>
+                <dl class="row mt-4 mb-0 small">
+                    <dt class="col-6">Last reviewer</dt><dd class="col-6">{% if feedback.reviewed_by %}{{ feedback.reviewed_by.get_username }}{% else %}Not reviewed{% endif %}</dd>
+                    <dt class="col-6">Last reviewed</dt><dd class="col-6">{% if feedback.reviewed_at %}{{ feedback.reviewed_at|date:'M d, Y h:i A' }}{% else %}—{% endif %}</dd>
+                    <dt class="col-6">Action completed</dt><dd class="col-6">{% if feedback.action_completed_at %}{{ feedback.action_completed_at|date:'M d, Y h:i A' }}{% else %}—{% endif %}</dd>
+                </dl>
+            </div>
+        </section>
+    </div>
+</div>
+
+<section class="card soft-card shadow-sm mt-4" aria-labelledby="feedback-history-heading">
+    <div class="card-body p-4">
+        <h2 id="feedback-history-heading" class="h5 section-title">Review history</h2>
+        <ol class="feedback-event-list mb-0">
+            {% for event in feedback.events.all %}
+                <li><strong>{{ event.get_event_type_display }}</strong><span>{{ event.summary }}</span><small>{{ event.created_at|date:'M d, Y h:i A' }} · {% if event.actor %}{{ event.actor.get_username }}{% else %}System{% endif %}</small></li>
+            {% empty %}
+                <li class="text-muted">No review history has been recorded.</li>
+            {% endfor %}
+        </ol>
+    </div>
+</section>
+{% endblock %}

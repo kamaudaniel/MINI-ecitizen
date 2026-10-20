@@ -1,0 +1,170 @@
+{% extends 'service_requests/base.html' %}
+
+{% block title %}Request Details{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card soft-card shadow-sm border-0">
+            <div class="card-body p-4 p-lg-5">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <div>
+                        <p class="eyebrow mb-2">Service case</p>
+                        <h1 class="h2 mb-0">{{ request_detail.reference_number }}</h1>
+                    </div>
+                    <span class="badge-status status-{{ request_detail.status }}">{{ request_detail.get_status_display }}</span>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6 detail-box">
+                        <span class="detail-label">Category</span>
+                        <div>{{ request_detail.get_category_display }}</div>
+                    </div>
+                    <div class="col-md-6 detail-box">
+                        <span class="detail-label">Location</span>
+                        <div>{{ request_detail.location }}</div>
+                    </div>
+                    <div class="col-md-6 detail-box">
+                        <span class="detail-label">Submitted</span>
+                        <div>{{ request_detail.created_at|date:'M d, Y h:i A' }}</div>
+                    </div>
+                    <div class="col-md-6 detail-box">
+                        <span class="detail-label">Last updated</span>
+                        <div>{{ request_detail.updated_at|date:'M d, Y h:i A' }}</div>
+                    </div>
+                </div>
+
+                <section class="status-progress-section mb-4" aria-labelledby="progress-heading">
+                    <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-3">
+                        <h3 id="progress-heading" class="h5 fw-bold mb-0">Request progress</h3>
+                        <span class="text-muted small">Last updated {{ request_detail.updated_at|date:'M d, Y h:i A' }}</span>
+                    </div>
+                    <ol class="request-progress">
+                        {% for step in status_steps %}
+                            <li class="progress-step progress-{{ step.state }}" {% if step.state == 'current' %}aria-current="step"{% endif %}>
+                                <span class="progress-marker">
+                                    {% if step.state == 'complete' %}<i class="bi bi-check-lg" aria-hidden="true"></i>{% else %}{{ forloop.counter }}{% endif %}
+                                </span>
+                                <span class="progress-label">{{ step.label }}</span>
+                            </li>
+                        {% endfor %}
+                    </ol>
+                </section>
+
+                <div class="mb-4">
+                    <h5 class="fw-bold mb-2">Description</h5>
+                    <p class="mb-0 description-copy">{{ request_detail.description }}</p>
+                </div>
+
+                {% if request_detail.image %}
+                    <div>
+                        <h5 class="fw-bold mb-3">Attached image</h5>
+                        <img src="{{ request_detail.image.url }}" class="img-preview w-100" alt="Attached image for service request {{ request_detail.reference_number }}">
+                    </div>
+                {% endif %}
+
+                {% if not user.is_staff %}
+                    <section class="feedback-section mt-4 pt-4 border-top" aria-labelledby="feedback-heading">
+                        <h2 id="feedback-heading" class="h4 section-title mb-3">Citizen feedback</h2>
+                        {% if feedback %}
+                            <div class="detail-box mb-3">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                                    <strong>Service rating</strong>
+                                    <span class="feedback-stars" aria-label="{{ feedback.rating }} out of 5 stars">{{ feedback.rating }} / 5 stars</span>
+                                </div>
+                                <p class="mb-2"><strong>Comment:</strong> {{ feedback.comment|default:"No written comment provided." }}</p>
+                                {% if feedback.suggestion %}
+                                    <p class="mb-0"><strong>What can we do better?</strong> {% if feedback.suggestion_category %}<span class="text-muted">{{ feedback.get_suggestion_category_display }}:</span> {% endif %}{{ feedback.suggestion }}</p>
+                                {% endif %}
+                                {% if feedback.response_published_at and feedback.admin_response %}
+                                    <div class="published-response mt-3">
+                                        <strong>Response from county staff</strong>
+                                        <p class="mb-1">{{ feedback.admin_response }}</p>
+                                        <small class="text-muted">Published {{ feedback.response_published_at|date:'M d, Y h:i A' }}</small>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        {% if can_submit_feedback %}
+                            <form method="post" class="feedback-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="submit_feedback">
+                                <fieldset class="mb-3">
+                                    <legend class="form-label fw-semibold">Rate your service experience</legend>
+                                    <p class="form-text">1 star is Very poor and 5 stars is Excellent.</p>
+                                    <div class="feedback-rating-options" role="radiogroup" aria-label="Service experience rating">
+                                        {% for choice in feedback_form.rating %}
+                                            <label class="feedback-rating-option" for="{{ choice.id_for_label }}">
+                                                {{ choice.tag }}
+                                                <span class="feedback-star-group" aria-hidden="true">{% if forloop.counter >= 1 %}★{% else %}☆{% endif %}{% if forloop.counter >= 2 %}★{% else %}☆{% endif %}{% if forloop.counter >= 3 %}★{% else %}☆{% endif %}{% if forloop.counter >= 4 %}★{% else %}☆{% endif %}{% if forloop.counter >= 5 %}★{% else %}☆{% endif %}</span>
+                                                <span class="feedback-rating-label">{{ choice.choice_label }}</span>
+                                            </label>
+                                        {% endfor %}
+                                    </div>
+                                    {% if feedback_form.rating.errors %}<div id="id_rating_errors" class="field-errors" role="alert">{{ feedback_form.rating.errors }}</div>{% endif %}
+                                </fieldset>
+                                <div class="mb-3">
+                                    <label for="{{ feedback_form.comment.id_for_label }}" class="form-label fw-semibold">Your comments <span class="optional-label">Optional</span></label>
+                                    {{ feedback_form.comment }}
+                                    {% if feedback_form.comment.errors %}<div id="id_comment_errors" class="field-errors" role="alert">{{ feedback_form.comment.errors }}</div>{% endif %}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="{{ feedback_form.suggestion_category.id_for_label }}" class="form-label fw-semibold">Suggestion category <span class="optional-label">Optional</span></label>
+                                    {{ feedback_form.suggestion_category }}
+                                    {% if feedback_form.suggestion_category.errors %}<div id="id_suggestion_category_errors" class="field-errors" role="alert">{{ feedback_form.suggestion_category.errors }}</div>{% endif %}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="{{ feedback_form.suggestion.id_for_label }}" class="form-label fw-semibold">What can we do better? <span class="optional-label">Optional</span></label>
+                                    {{ feedback_form.suggestion }}
+                                    {% if feedback_form.suggestion.errors %}<div id="id_suggestion_errors" class="field-errors" role="alert">{{ feedback_form.suggestion.errors }}</div>{% endif %}
+                                </div>
+                                <button type="submit" class="btn btn-primary">{% if feedback %}Update feedback{% else %}Submit feedback{% endif %}</button>
+                            </form>
+                        {% elif not feedback %}
+                            <p class="text-muted mb-0">You can leave feedback after this request has been resolved.</p>
+                        {% else %}
+                            <p class="text-muted mb-0">Your feedback is saved. It can be updated after the request is resolved again.</p>
+                        {% endif %}
+                    </section>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card soft-card shadow-sm border-0 h-100">
+            <div class="card-body p-4">
+                {% if user.is_staff %}
+                    <h4 class="section-title mb-3">Manage status</h4>
+                    <form method="post" data-confirm-status="{{ request_detail.reference_number }}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="status" class="form-label fw-semibold">Current status</label>
+                            <select name="status" id="status" class="form-select">
+                                {% for value, label in status_choices %}
+                                    <option value="{{ value }}" {% if request_detail.status == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-check2-circle me-2" aria-hidden="true"></i>Save status update</button>
+                    </form>
+                {% else %}
+                    <h4 class="section-title mb-3">Current status</h4>
+                    <div class="alert alert-light border mb-3">
+                        Citizens can view status updates, but only county staff can change them.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Status</label>
+                        <div class="form-control bg-light border-0 rounded-3">{{ request_detail.get_status_display }}</div>
+                    </div>
+                {% endif %}
+
+                <div class="mt-4">
+                    <a href="{% if user.is_staff %}{% url 'admin_dashboard' %}{% else %}{% url 'request_list' %}{% endif %}" class="btn btn-outline-secondary w-100">Back</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

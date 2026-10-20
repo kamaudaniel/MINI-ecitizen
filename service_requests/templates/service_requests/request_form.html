@@ -1,0 +1,67 @@
+{% extends 'service_requests/base.html' %}
+
+{% block title %}Submit Request{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card form-card shadow-sm border-0">
+            <div class="card-body p-4 p-md-5">
+                <p class="eyebrow">New service case</p>
+                <h1 class="h2 mb-2">Report a public service issue</h1>
+                <p class="text-muted mb-4">Include a precise location and enough detail to help the county team respond.</p>
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+
+                    <fieldset class="form-section mb-4">
+                        <legend class="form-section-title">Issue details</legend>
+                        <div class="row g-3">
+                            <div class="col-md-5">
+                                <label for="{{ form.category.id_for_label }}" class="form-label">Category</label>
+                                {{ form.category }}
+                                {% if form.category.errors %}<div id="{{ form.category.id_for_label }}_errors" class="field-errors" role="alert">{{ form.category.errors }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-7">
+                                <label for="{{ form.location.id_for_label }}" class="form-label">Location</label>
+                                {{ form.location }}
+                                {% if form.location.errors %}<div id="{{ form.location.id_for_label }}_errors" class="field-errors" role="alert">{{ form.location.errors }}</div>{% endif %}
+                                <div id="location-help" class="form-text">Include a road, landmark, village or other useful location detail.</div>
+                            </div>
+                            <div class="col-12">
+                                <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                                {{ form.description }}
+                                {% if form.description.errors %}<div id="{{ form.description.id_for_label }}_errors" class="field-errors" role="alert">{{ form.description.errors }}</div>{% endif %}
+                                <div id="description-help" class="form-text">Describe what happened and any details that may help the county team respond.</div>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="form-section mb-4">
+                        <legend class="form-section-title">Supporting evidence <span class="optional-label">Optional</span></legend>
+                        <label for="{{ form.image.id_for_label }}" class="form-label">Attach an image</label>
+                        {{ form.image }}
+                        {% if form.image.errors %}<div id="{{ form.image.id_for_label }}_errors" class="field-errors" role="alert">{{ form.image.errors }}</div>{% endif %}
+                        <div id="image-help" class="form-text">JPG, PNG, GIF or WEBP. Maximum file size: 5 MB.</div>
+                        <div class="upload-preview mt-3" data-image-preview-container hidden>
+                            <img src="" alt="Preview of selected request attachment" data-image-preview-image>
+                            <div class="upload-preview-info">
+                                <span class="detail-label">Selected image</span>
+                                <span class="upload-preview-name" data-image-preview-name aria-live="polite"></span>
+                                <button type="button" class="btn btn-outline-secondary btn-sm mt-2" data-image-preview-clear>
+                                    <i class="bi bi-x-circle me-1" aria-hidden="true"></i>Remove image
+                                </button>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <div class="form-actions d-flex flex-column-reverse flex-sm-row justify-content-end gap-2">
+                        <a href="{% url 'request_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-send me-2" aria-hidden="true"></i>Submit report</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
